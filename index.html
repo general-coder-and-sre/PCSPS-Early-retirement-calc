@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civil Service Pension Calculator (PCPS)</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.4; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 20px; }
+        .input-group { margin-bottom: 12px; }
+        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .row div { flex: 1; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.9em; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #1a252f; }
+        .results { margin-top: 20px; padding: 15px; background: #eef2f7; border-left: 5px solid #2c3e50; display: none; }
+        .results p { margin: 4px 0; }
+        .disclaimer { font-size: 0.75em; color: #666; margin-top: 20px; text-align: center; font-style: italic; }
+        .note { font-size: 0.8em; color: #666; margin-top: 10px; line-height: 1.2; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Early Retirement Calculator for PCPS</h2>
+    
+    <div class="input-group">
+        <label>Scheme</label>
+        <select id="scheme" onchange="togglePlusInputs()">
+            <option value="classic">Classic</option>
+            <option value="premium">Premium</option>
+            <option value="classic_plus">Classic Plus</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>Final Pensionable Earnings (£) / best years pay in last 3 years</label>
+        <input type="number" id="earnings" placeholder="e.g. 40000">
+    </div>
+
+    <div id="standardService">
+        <label>Total Reckonable Service</label>
+        <div class="row">
+            <div><input type="number" id="serviceYears" placeholder="Years"></div>
+            <div><input type="number" id="serviceDays" placeholder="Days" min="0" max="364"></div>
+        </div>
+    </div>
+
+    <div id="plusService" class="hidden">
+        <label>Service BEFORE 1 Oct 2002 (Classic Part)</label>
+        <div class="row">
+            <div><input type="number" id="preYears" placeholder="Years"></div>
+            <div><input type="number" id="preDays" placeholder="Days"></div>
+        </div>
+        <label>Service FROM 1 Oct 2002 (Premium Part)</label>
+        <div class="row">
+            <div><input type="number" id="postYears" placeholder="Years"></div>
+            <div><input type="number" id="postDays" placeholder="Days"></div>
+        </div>
+    </div>
+
+    <label>Retirement Age</label>
+    <div class="row">
+        <div>
+            <select id="retireAgeY">
+                <option value="50">50</option><option value="51">51</option><option value="52">52</option>
+                <option value="53">53</option><option value="54">54</option><option value="55">55</option>
+                <option value="56">56</option><option value="57">57</option><option value="58">58</option>
+                <option value="59">59</option><option value="60">60</option>
+            </select>
+        </div>
+        <div>
+            <select id="retireAgeM">
+                <option value="0">0 Months</option><option value="1">1 Month</option>
+                <option value="2">2 Months</option><option value="3">3 Months</option>
+                <option value="4">4 Months</option><option value="5">5 Months</option>
+                <option value="6">6 Months</option><option value="7">7 Months</option>
+                <option value="8">8 Months</option><option value="9">9 Months</option>
+                <option value="10">10 Months</option><option value="11">11 Months</option>
+            </select>
+        </div>
+    </div>
+
+    <button onclick="calculate()">Calculate Benefits</button>
+
+    <div id="results" class="results">
+        <p><strong>Scheme:</strong> <span id="resScheme"></span></p>
+        <p><strong>Total Service:</strong> <span id="resService"></span></p>
+        <hr>
+        <p><strong>Unreduced Annual Pension:</strong> <span id="unreducedPension"></span></p>
+        <p><strong>Unreduced Lump Sum:</strong> <span id="unreducedLS"></span></p>
+        <hr>
+        <p><strong>Reduced Annual Pension:</strong> <span id="reducedPension"></span></p>
+        <p><strong>Reduced Lump Sum:</strong> <span id="reducedLS"></span></p>
+        <p class="note" id="lsNote"></p>
+        <p class="note">*Factors from GAD Consolidated Tables 1-406/1-407 (NPA 60).</p>
+    </div>
+        <p class="disclaimer"><strong>For illustrative purposes only.</strong> Estimates produced are not a guarantee. You should use the offical calculator / modeller (if available). This calculaotr does not provide financial advice.</p>
+</div>
+
+<script>
+    const pMatrix = {
+        50: [0.673, 0.675, 0.677, 0.679, 0.681, 0.683, 0.684, 0.686, 0.688, 0.690, 0.692, 0.694],
+        51: [0.696, 0.698, 0.700, 0.702, 0.704, 0.706, 0.708, 0.710, 0.712, 0.714, 0.716, 0.718],
+        52: [0.720, 0.722, 0.725, 0.727, 0.729, 0.731, 0.734, 0.736, 0.738, 0.740, 0.743, 0.745],
+        53: [0.747, 0.750, 0.752, 0.754, 0.757, 0.759, 0.761, 0.764, 0.766, 0.768, 0.771, 0.773],
+        54: [0.775, 0.778, 0.780, 0.783, 0.786, 0.788, 0.791, 0.793, 0.796, 0.799, 0.801, 0.804],
+        55: [0.806, 0.809, 0.812, 0.815, 0.818, 0.821, 0.823, 0.826, 0.829, 0.832, 0.835, 0.838],
+        56: [0.841, 0.844, 0.847, 0.850, 0.853, 0.856, 0.859, 0.862, 0.865, 0.868, 0.871, 0.874],
+        57: [0.877, 0.880, 0.883, 0.886, 0.890, 0.893, 0.896, 0.899, 0.903, 0.906, 0.909, 0.912],
+        58: [0.916, 0.919, 0.923, 0.926, 0.929, 0.933, 0.936, 0.940, 0.943, 0.946, 0.950, 0.953],
+        59: [0.957, 0.961, 0.964, 0.968, 0.972, 0.976, 0.979, 0.983, 0.987, 0.991, 0.994, 0.998],
+        60: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    };
+
+    const lsMatrix = {
+        50: [0.846, 0.847, 0.848, 0.849, 0.850, 0.851, 0.853, 0.854, 0.855, 0.856, 0.857, 0.858],
+        51: [0.860, 0.861, 0.862, 0.863, 0.865, 0.866, 0.867, 0.868, 0.870, 0.871, 0.872, 0.873],
+        52: [0.875, 0.876, 0.877, 0.878, 0.880, 0.881, 0.882, 0.883, 0.885, 0.886, 0.887, 0.888],
+        53: [0.890, 0.891, 0.892, 0.893, 0.895, 0.896, 0.897, 0.898, 0.900, 0.901, 0.902, 0.903],
+        54: [0.905, 0.906, 0.907, 0.908, 0.910, 0.911, 0.912, 0.913, 0.915, 0.916, 0.917, 0.918],
+        55: [0.920, 0.921, 0.922, 0.924, 0.925, 0.926, 0.928, 0.929, 0.930, 0.932, 0.933, 0.934],
+        56: [0.936, 0.937, 0.938, 0.940, 0.941, 0.942, 0.944, 0.945, 0.946, 0.948, 0.949, 0.950],
+        57: [0.952, 0.953, 0.954, 0.956, 0.957, 0.958, 0.960, 0.961, 0.962, 0.964, 0.965, 0.966],
+        58: [0.968, 0.969, 0.970, 0.972, 0.973, 0.974, 0.976, 0.977, 0.978, 0.980, 0.981, 0.982],
+        59: [0.984, 0.985, 0.987, 0.988, 0.989, 0.991, 0.992, 0.994, 0.995, 0.996, 0.998, 0.999],
+        60: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    };
+
+    function togglePlusInputs() {
+        const isPlus = document.getElementById('scheme').value === 'classic_plus';
+        document.getElementById('standardService').className = isPlus ? 'hidden' : '';
+        document.getElementById('plusService').className = isPlus ? '' : 'hidden';
+    }
+
+    function calculate() {
+        const scheme = document.getElementById('scheme').value;
+        const earnings = parseFloat(document.getElementById('earnings').value);
+        const ageY = parseInt(document.getElementById('retireAgeY').value);
+        const ageM = parseInt(document.getElementById('retireAgeM').value);
+
+        if (isNaN(earnings)) { alert("Please enter earnings"); return; }
+
+        let unPension = 0;
+        let unLS = 0;
+        let totalYears = 0;
+
+        if (scheme === 'classic') {
+            totalYears = (parseInt(document.getElementById('serviceYears').value) || 0) + ((parseInt(document.getElementById('serviceDays').value) || 0) / 365);
+            unPension = (earnings * totalYears) / 80;
+            unLS = unPension * 3;
+        } else if (scheme === 'premium') {
+            totalYears = (parseInt(document.getElementById('serviceYears').value) || 0) + ((parseInt(document.getElementById('serviceDays').value) || 0) / 365);
+            unPension = (earnings * totalYears) / 60;
+            unLS = 0; // Premium has no automatic lump sum
+        } else {
+            const preY = (parseInt(document.getElementById('preYears').value) || 0) + ((parseInt(document.getElementById('preDays').value) || 0) / 365);
+            const postY = (parseInt(document.getElementById('postYears').value) || 0) + ((parseInt(document.getElementById('postDays').value) || 0) / 365);
+            totalYears = preY + postY;
+            const p1 = (earnings * preY) / 80;
+            const p2 = (earnings * postY) / 60;
+            unPension = p1 + p2;
+            unLS = p1 * 3; // Auto LS only for classic part
+        }
+
+        const pFactor = pMatrix[ageY][ageM];
+        const lsFactor = lsMatrix[ageY][ageM];
+
+        const redPension = unPension * pFactor;
+        const redLS = unLS * lsFactor;
+
+        document.getElementById('resScheme').innerText = scheme.replace('_', ' ').toUpperCase();
+        document.getElementById('resService').innerText = totalYears.toFixed(4) + " years";
+        document.getElementById('unreducedPension').innerText = "£" + unPension.toLocaleString(undefined, {minimumFractionDigits:2});
+        document.getElementById('unreducedLS').innerText = "£" + unLS.toLocaleString(undefined, {minimumFractionDigits:2});
+        document.getElementById('reducedPension').innerText = "£" + redPension.toLocaleString(undefined, {minimumFractionDigits:2});
+        document.getElementById('reducedLS').innerText = "£" + redLS.toLocaleString(undefined, {minimumFractionDigits:2});
+        
+        const note = document.getElementById('lsNote');
+        if(scheme === 'premium') note.innerText = "Note: Premium has no automatic lump sum. You can choose to exchange pension for cash at £1:£12.";
+        else if(scheme === 'classic_plus') note.innerText = "Note: Classic Plus automatic lump sum only applies to service before 1 Oct 2002.";
+        else note.innerText = "";
+
+        document.getElementById('results').style.display = 'block';
+    }
+</script>
+</body>
+</html>
