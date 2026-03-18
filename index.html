@@ -38,7 +38,7 @@
 
     <div class="input-group">
         <label>Final Pensionable Earnings (£) / best years pay in last 3 years</label>
-        <input type="number" id="earnings" placeholder="e.g. 40000">
+        <input type="text" id="earnings" placeholder="e.g. 40000 or expression (2500*2)+(2600*10)">
     </div>
 
     <div id="standardService">
@@ -101,7 +101,9 @@
         <p class="note" id="lsNote"></p>
         <p class="note">*Factors from GAD Consolidated Tables 1-406/1-407 (NPA 60).</p>
     </div>
-        <p class="disclaimer"><strong>For illustrative purposes only.</strong> Estimates produced are not a guarantee. You should use the offical calculator / modeller (if available). This calculator does not provide financial advice.</p>
+        <p class="disclaimer">For illustrative purposes only. Estimates produced are not a 
+            guarantee. You should use the offical calculator / modeller (if available). 
+            This calculator does not provide financial advice.</p>
 </div>
 
 <script>
@@ -141,11 +143,19 @@
 
     function calculate() {
         const scheme = document.getElementById('scheme').value;
-        const earnings = parseFloat(document.getElementById('earnings').value);
+        const earningsInput = document.getElementById('earnings').value;
+        let earnings = 0;
+        try {
+            earnings = Function(`"use strict"; return (${earningsInput})`)();
+        } catch (e) {
+            alert("Invalid earnings expression. Please enter a valid number or mathematical expression.");
+            return;
+        }
+        
         const ageY = parseInt(document.getElementById('retireAgeY').value);
         const ageM = parseInt(document.getElementById('retireAgeM').value);
 
-        if (isNaN(earnings)) { alert("Please enter earnings"); return; }
+        if (isNaN(earnings) || typeof earnings !== 'number') { alert("Please enter a valid earnings number or expression"); return; }
 
         let unPension = 0;
         let unLS = 0;
