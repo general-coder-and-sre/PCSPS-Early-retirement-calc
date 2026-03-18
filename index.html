@@ -95,10 +95,13 @@
         <hr>
         <p><strong>Reduced Annual Pension:</strong> <span id="reducedPension"></span></p>
         <p><strong>Reduced Lump Sum:</strong> <span id="reducedLS"></span></p>
+        <hr>
+        <p><strong>Pension Factor:</strong> <span id="resPFactor"></span></p>
+        <p id="lsFactorContainer"><strong>Lump Sum Factor:</strong> <span id="resLSFactor"></span></p>
         <p class="note" id="lsNote"></p>
         <p class="note">*Factors from GAD Consolidated Tables 1-406/1-407 (NPA 60).</p>
     </div>
-        <p class="disclaimer"><strong>For illustrative purposes only.</strong> Estimates produced are not a guarantee. You should use the offical calculator / modeller (if available). This calculaotr does not provide financial advice.</p>
+        <p class="disclaimer"><strong>For illustrative purposes only.</strong> Estimates produced are not a guarantee. You should use the offical calculator / modeller (if available). This calculator does not provide financial advice.</p>
 </div>
 
 <script>
@@ -179,6 +182,14 @@
         document.getElementById('reducedPension').innerText = "£" + redPension.toLocaleString(undefined, {minimumFractionDigits:2});
         document.getElementById('reducedLS').innerText = "£" + redLS.toLocaleString(undefined, {minimumFractionDigits:2});
         
+        document.getElementById('resPFactor').innerText = pFactor;
+        if (unLS > 0) {
+            document.getElementById('lsFactorContainer').style.display = 'block';
+            document.getElementById('resLSFactor').innerText = lsFactor;
+        } else {
+            document.getElementById('lsFactorContainer').style.display = 'none';
+        }
+
         const note = document.getElementById('lsNote');
         if(scheme === 'premium') note.innerText = "Note: Premium has no automatic lump sum. You can choose to exchange pension for cash at £1:£12.";
         else if(scheme === 'classic_plus') note.innerText = "Note: Classic Plus automatic lump sum only applies to service before 1 Oct 2002.";
