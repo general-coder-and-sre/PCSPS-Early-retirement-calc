@@ -98,6 +98,20 @@
         <hr>
         <p><strong>Reduced Annual Pension:</strong> <span id="reducedPension"></span></p>
         <p><strong>Reduced Lump Sum:</strong> <span id="reducedLS"></span></p>
+        
+        <div id="commutationSection" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #2c3e50;">
+            <p style="margin-bottom: 5px;"><strong>Choose your Lump Sum (Commutation)</strong></p>
+            <p class="note" style="margin-top: 0; margin-bottom: 10px;">Exchange £1 of pension for £12 lump sum (up to HMRC limits).</p>
+            <input type="range" id="lumpSumSlider" min="0" max="0" step="1" value="0" style="width: 100%; margin-bottom: 10px;" oninput="updateCommutation()">
+            <p><strong>Selected Lump Sum:</strong> <span id="finalLumpSum" style="color: #2c3e50; font-weight: bold;"></span></p>
+            <p><strong>Final Annual Pension:</strong> <span id="finalPension" style="color: #2c3e50; font-weight: bold;"></span></p>
+            <p class="note" id="commuteNote" style="margin-top: 5px;"></p>
+        </div>
+
+        <div id="chartContainer" style="max-width: 300px; margin: 20px auto; display: none;">
+            <canvas id="benefitChart"></canvas>
+        </div>
+
         <hr>
         <p class="note">Pension early retierement Factor: <span id="resPFactor"></span></p>
         <p class="note" id="lsFactorContainer">Lump Sum early retirement Factor: <span id="resLSFactor"></span></p>
@@ -109,6 +123,7 @@
             This calculator does not provide financial advice.</p>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const pMatrix = {
         50: [0.673, 0.675, 0.677, 0.679, 0.681, 0.683, 0.684, 0.686, 0.688, 0.690, 0.692, 0.694],
@@ -137,6 +152,67 @@
         59: [0.984, 0.985, 0.987, 0.988, 0.989, 0.991, 0.992, 0.994, 0.995, 0.996, 0.998, 0.999],
         60: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     };
+
+    let basePensionForCommutation = 0;
+    let baseLSForCommutation = 0;
+    let benefitChartInstance = null;
+
+    function updateChart(pension, lumpSum) {
+        const pensionValue = pension * 20;
+        const ctx = document.getElementById('benefitChart').getContext('2d');
+        
+        document.getElementById('chartContainer').style.display = 'block';
+
+        if (benefitChartInstance) {
+            benefitChartInstance.data.datasets[0].data = [pensionValue, lumpSum];
+            benefitChartInstance.update();
+        } else {
+            benefitChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pension Value (20x)', 'Lump Sum'],
+                    datasets: [{
+                        data: [pensionValue, lumpSum],
+                        backgroundColor: ['#2c3e50', '#18bc9c'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': £' + context.parsed.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function updateCommutation() {
+        const slider = document.getElementById('lumpSumSlider');
+        const desiredTotalLS = parseFloat(slider.value);
+        
+        const additionalLS = desiredTotalLS - baseLSForCommutation;
+        const pensionGivenUp = additionalLS / 12;
+        const finalPension = basePensionForCommutation - pensionGivenUp;
+        
+        document.getElementById('finalLumpSum').innerText = "£" + desiredTotalLS.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+        document.getElementById('finalPension').innerText = "£" + finalPension.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+        
+        if (additionalLS > 0) {
+            document.getElementById('commuteNote').innerText = `Giving up £${pensionGivenUp.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} of annual pension for an extra £${additionalLS.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} lump sum.`;
+        } else {
+            document.getElementById('commuteNote').innerText = "Standard maximum pension selected.";
+        }
+        
+        updateChart(finalPension, desiredTotalLS);
+    }
 
     function togglePlusInputs() {
         const isPlus = document.getElementById('scheme').value === 'classic_plus';
@@ -195,6 +271,22 @@
         document.getElementById('reducedPension').innerText = "£" + redPension.toLocaleString(undefined, {minimumFractionDigits:2});
         document.getElementById('reducedLS').innerText = "£" + redLS.toLocaleString(undefined, {minimumFractionDigits:2});
         
+        basePensionForCommutation = redPension;
+        baseLSForCommutation = redLS;
+        
+        if (scheme === 'premium' || scheme === 'classic_plus') {
+            const maxLS = (30 / 7) * redPension + (5 / 14) * redLS;
+            const slider = document.getElementById('lumpSumSlider');
+            slider.min = redLS;
+            slider.max = maxLS;
+            slider.value = redLS;
+            document.getElementById('commutationSection').style.display = 'block';
+            updateCommutation();
+        } else {
+            document.getElementById('commutationSection').style.display = 'none';
+            updateChart(redPension, redLS);
+        }
+
         document.getElementById('resPFactor').innerText = pFactor;
         if (unLS > 0) {
             document.getElementById('lsFactorContainer').style.display = 'block';
