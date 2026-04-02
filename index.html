@@ -185,7 +185,7 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return context.label + ': £' + context.parsed.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+                                    return context.label + ': £' + context.parsed.toLocaleString(undefined, {maximumFractionDigits: 0});
                                 }
                             }
                         }
@@ -203,11 +203,11 @@
         const pensionGivenUp = additionalLS / 12;
         const finalPension = basePensionForCommutation - pensionGivenUp;
         
-        document.getElementById('finalLumpSum').innerText = "£" + desiredTotalLS.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-        document.getElementById('finalPension').innerText = "£" + finalPension.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+        document.getElementById('finalLumpSum').innerText = "£" + desiredTotalLS.toLocaleString(undefined, {maximumFractionDigits: 0});
+        document.getElementById('finalPension').innerText = "£" + finalPension.toLocaleString(undefined, {maximumFractionDigits: 0});
         
         if (additionalLS > 0) {
-            document.getElementById('commuteNote').innerText = `Giving up £${pensionGivenUp.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} of annual pension for an extra £${additionalLS.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} lump sum.`;
+            document.getElementById('commuteNote').innerText = `Giving up £${pensionGivenUp.toLocaleString(undefined, {maximumFractionDigits: 0})} of annual pension for an extra £${additionalLS.toLocaleString(undefined, {maximumFractionDigits: 0})} lump sum.`;
         } else {
             document.getElementById('commuteNote').innerText = "Standard maximum pension selected.";
         }
@@ -267,10 +267,10 @@
 
         document.getElementById('resScheme').innerText = scheme.replace('_', ' ').toUpperCase();
         document.getElementById('resService').innerText = totalYears.toFixed(4) + " years";
-        document.getElementById('unreducedPension').innerText = "£" + unPension.toLocaleString(undefined, {minimumFractionDigits:2});
-        document.getElementById('unreducedLS').innerText = "£" + unLS.toLocaleString(undefined, {minimumFractionDigits:2});
-        document.getElementById('reducedPension').innerText = "£" + redPension.toLocaleString(undefined, {minimumFractionDigits:2});
-        document.getElementById('reducedLS').innerText = "£" + redLS.toLocaleString(undefined, {minimumFractionDigits:2});
+        document.getElementById('unreducedPension').innerText = "£" + unPension.toLocaleString(undefined, {maximumFractionDigits: 0});
+        document.getElementById('unreducedLS').innerText = "£" + unLS.toLocaleString(undefined, {maximumFractionDigits: 0});
+        document.getElementById('reducedPension').innerText = "£" + redPension.toLocaleString(undefined, {maximumFractionDigits: 0});
+        document.getElementById('reducedLS').innerText = "£" + redLS.toLocaleString(undefined, {maximumFractionDigits: 0});
         
         basePensionForCommutation = redPension;
         baseLSForCommutation = redLS;
